@@ -1,0 +1,14 @@
+node_modules
+dist
+.venv
+.env
+bun.lockb
+
+data/*.sqlite
+data/*.db
+
+public/uploads/*.png
+public/uploads/*.jpg
+public/uploads/*.jpeg
+public/uploads/*.gif
+public/uploads/*.webp
