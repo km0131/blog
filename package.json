@@ -1,0 +1,25 @@
+{
+  "name": "my-dog-blog",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "bun src/index.ts",
+    "start": "bun src/index.ts",
+    "db:setup": "bun src/scripts/db_setup.ts",
+    "db:check": "bun src/scripts/db_check.ts",
+    "build:frontend": "bun build src/frontend/editor.ts --outdir public --format esm",
+    "build": "bun run build:frontend && bun run db:setup"
+  },
+  "dependencies": {
+    "@tiptap/core": "*",
+    "@tiptap/extension-document": "^3.22.5",
+    "@tiptap/extension-history": "^3.22.5",
+    "@tiptap/extension-image": "*",
+    "@tiptap/extension-paragraph": "^3.22.5",
+    "@tiptap/extension-text": "^3.22.5",
+    "@tiptap/starter-kit": "*",
+    "hono": "*",
+    "marked": "*",
+    "turndown": "*"
+  }
+}
