@@ -29,6 +29,30 @@ app.get('/editor-bundle.js', async (c) => {
   return c.redirect('/editor.js')
 })
 
+app.get('/favicon/*', async (c) => {
+  const reqPath = decodeURIComponent(c.req.path.replace(/^\/favicon\//, ''))
+  if (!reqPath || reqPath.includes('..') || reqPath.includes('\\')) {
+    return c.text('Invalid path', 400)
+  }
+
+  const abs = path.join(process.cwd(), 'public', 'favicon', reqPath)
+  if (!fs.existsSync(abs)) {
+    return c.text('Not found', 404)
+  }
+
+  const file = Bun.file(abs)
+  const contentType = reqPath.endsWith('.png')
+    ? 'image/png'
+    : reqPath.endsWith('.ico')
+      ? 'image/x-icon'
+      : 'application/octet-stream'
+
+  return c.body(file as any, 200, {
+    'Content-Type': contentType,
+    'Cache-Control': 'public, max-age=31536000, immutable',
+  })
+})
+
 app.use('/', serveStatic({ root: './public' }))
 
 // ルートにアクセスがあった場合は投稿一覧を表示する

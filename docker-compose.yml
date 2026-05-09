@@ -4,8 +4,8 @@ services:
     ports:
       - '3001:3000'
     volumes:
-      - ./:/app
-      - ./data:/app/data
+      - ./:/app:z
+      - ./data:/app/data:z
     environment:
       - NODE_ENV=development
     command: ["bun", "src/index.ts"]

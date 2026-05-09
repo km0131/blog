@@ -5,6 +5,12 @@ export function layout(title: string, content: string) {
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>${title}</title>
+  <!-- 標準ブラウザ用 -->
+  <link rel="icon" href="/favicon/favicon-32x32.png" type="image/png" sizes="32x32">
+  <!-- icoブラウザ用 -->
+  <link rel="icon" href="/favicon/favicon.ico" type="image/x-icon">
+  <!-- iPhone用 -->
+  <link rel="apple-touch-icon" href="/favicon/android-chrome-192x192.png" sizes="32x32">
   <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;700&family=Yomogi&display=swap" rel="stylesheet">
   <style>
