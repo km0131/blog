@@ -6,7 +6,7 @@ import fs from 'fs'
 import { renderPostsList } from './views/postsList'
 import { renderPostEditor } from './views/postEditor'
 import { layout } from './views/layout'
-import { listPosts, getPost, createPost, createUpload, withDB } from './lib/db'
+import { listPosts, getPost, createPost, updatePost, createUpload, withDB } from './lib/db'
 
 const app = new Hono()
 
@@ -155,6 +155,17 @@ app.get('/posts/new', async (c) => {
   return c.html(renderPostEditor(null))
 })
 
+app.get('/posts/:id/edit', async (c) => {
+  const id = Number(c.req.param('id'))
+  try {
+    const post = await getPost(id)
+    if (!post) return c.text('Not found', 404)
+    return c.html(renderPostEditor(post))
+  } catch (err) {
+    return c.text('Failed to load post: ' + String(err), 500)
+  }
+})
+
 app.get('/posts/:id', async (c) => {
   const id = Number(c.req.param('id'))
   try {
@@ -174,7 +185,10 @@ app.get('/posts/:id', async (c) => {
         <h1 class="text-3xl md:text-4xl font-bold leading-tight mb-6">${escapeHtml(post.title)}</h1>
         <div class="meta-info flex items-center justify-between gap-4 flex-wrap">
           <span>${metaDate || 'Created post'}</span>
-          <a href="/posts" class="btn-soft font-bold">一覧に戻る</a>
+          <div class="flex items-center gap-2">
+            <a href="/posts/${post.id}/edit" class="btn-soft font-bold">編集する</a>
+            <a href="/posts" class="btn-soft font-bold">一覧に戻る</a>
+          </div>
         </div>
         ${featuredImage ? `
           <img src="${escapeHtml(featuredImage)}" alt="${escapeHtml(post.title)}" class="post-image">
@@ -196,6 +210,7 @@ app.get('/posts/:id', async (c) => {
 app.post('/api/posts', async (c) => {
   try {
     const body = await c.req.json()
+    const id = Number(body.id || 0)
     const title = String(body.title || 'untitled')
     const md = String(body.body_markdown || '')
     const coverImageUrl = String(body.cover_image_url || '')
@@ -218,6 +233,11 @@ app.post('/api/posts', async (c) => {
         return result
       })
       if (rows[0]) coverImageId = rows[0].id
+    }
+
+    if (id > 0) {
+      const res = await updatePost(id, { title, body_markdown: md, cover_image: coverImageId })
+      return c.json({ ok: true, id, changes: res.changes })
     }
 
     const res = await createPost({ title, body_markdown: md, cover_image: coverImageId })

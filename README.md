@@ -149,3 +149,18 @@ bun run db:setup
 - marked: https://github.com/markedjs/marked
 
 README を上書きしました。次は `Initialize Bun + Hono project` を進めますか？
+
+## コンテナビルド
+```
+docker compose up --build
+```
+
+## コンテナ起動
+```
+docker compose up -d
+```
+
+## コンテナ停止
+```
+docker compose down
+```

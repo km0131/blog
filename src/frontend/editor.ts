@@ -1,9 +1,6 @@
 import { Editor } from '@tiptap/core'
-import Document from '@tiptap/extension-document'
-import Paragraph from '@tiptap/extension-paragraph'
-import Text from '@tiptap/extension-text'
-import History from '@tiptap/extension-history'
-
+import StarterKit from '@tiptap/starter-kit'
+import Image from '@tiptap/extension-image'
 let editorInstance: Editor | null = null;
 
 export function initEditor(elementId: string) {
@@ -13,10 +10,8 @@ export function initEditor(elementId: string) {
   editorInstance = new Editor({
     element: element,
     extensions: [
-      Document,
-      Paragraph,
-      Text,
-      History,
+      StarterKit,
+      Image,
     ],
     content: '',
     onUpdate({ editor }) {
@@ -55,8 +50,7 @@ export function initEditor(elementId: string) {
 
 export function getMarkdown() {
   if (!editorInstance) return '';
-  // HTML要素を介さず、テキストとして中身を取得する
-  return editorInstance.getText({ blockSeparator: "\n" });
+  return editorInstance.getText({ blockSeparator: "\n" })
 }
 
 export function setMarkdown(md: string) {

@@ -75,50 +75,60 @@ export async function getPost(id: number) {
 
 export async function createPost({ title, body_markdown, cover_image = null, tags = null }:{title:string,body_markdown:string,cover_image?:number|string|null,tags?:string|null}) {
   return withDB((db) => {
-    // If caller provided a numeric cover_image id, prefer it and skip URL lookup.
-    if (typeof cover_image === 'number') {
-      const stmt = db.prepare('INSERT INTO posts (title, body_markdown, cover_image, tags, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)')
-      const res = stmt.run(title, body_markdown, cover_image, tags)
-      return { lastInsertRowid: res.lastInsertRowid }
-    }
-
-    // 1. Markdownから全画像URLを抽出
-    const imageUrls = body_markdown.match(/!\[.*?\]\((.*?)\)/g)?.map(m => {
-      const mm = m.match(/\((.*?)\)/)
-      return mm ? mm[1] : ''
-    }).filter(Boolean) || []
-
-    // 2. 一番上のリンク（配列の最初の要素）が存在するかチェック
-    const firstUrl = imageUrls.length > 0 ? imageUrls[0] : null
-
-    let thumbnailId: number | null = null
-
-    if (firstUrl) {
-      // normalize absolute URLs to pathname if necessary
-      let lookup = firstUrl
-      try {
-        if (/^https?:\/\//i.test(lookup)) {
-          const nu = new URL(lookup)
-          lookup = nu.pathname
-        }
-      } catch (e) {}
-
-      // 3. そのURLでDBを検索（created_atが最古のものを1件）
-      const query = db.prepare('SELECT id FROM uploads WHERE url_path = ? ORDER BY datetime(created_at) ASC LIMIT 1')
-      const rows: any[] = query.all(lookup)
-
-      if (rows[0]) {
-        thumbnailId = rows[0].id
-      }
-    }
-
-    // If thumbnailId found, store it; otherwise use provided (string) cover_image or NULL.
-    const coverValue: any = thumbnailId !== null ? thumbnailId : (cover_image || null)
-
+    const coverValue = resolveCoverImageId(db, body_markdown, cover_image)
     const stmt = db.prepare('INSERT INTO posts (title, body_markdown, cover_image, tags, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)')
     const res = stmt.run(title, body_markdown, coverValue, tags)
     return { lastInsertRowid: res.lastInsertRowid }
   })
+}
+
+export async function updatePost(id: number, { title, body_markdown, cover_image = null, tags = null }:{title:string,body_markdown:string,cover_image?:number|string|null,tags?:string|null}) {
+  return withDB((db) => {
+    const coverValue = resolveCoverImageId(db, body_markdown, cover_image)
+    const stmt = db.prepare('UPDATE posts SET title = ?, body_markdown = ?, cover_image = ?, tags = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+    const res = stmt.run(title, body_markdown, coverValue, tags, id)
+    return { changes: res.changes }
+  })
+}
+
+function resolveCoverImageId(db: any, body_markdown: string, cover_image: number|string|null) {
+  // If caller provided a numeric cover_image id, prefer it and skip URL lookup.
+  if (typeof cover_image === 'number') {
+    return cover_image
+  }
+
+  // 1. Markdownから全画像URLを抽出
+  const imageUrls = body_markdown.match(/!\[.*?\]\((.*?)\)/g)?.map(m => {
+    const mm = m.match(/\((.*?)\)/)
+    return mm ? mm[1] : ''
+  }).filter(Boolean) || []
+
+  // 2. 一番上のリンク（配列の最初の要素）が存在するかチェック
+  const firstUrl = imageUrls.length > 0 ? imageUrls[0] : null
+
+  let thumbnailId: number | null = null
+
+  if (firstUrl) {
+    // normalize absolute URLs to pathname if necessary
+    let lookup = firstUrl
+    try {
+      if (/^https?:\/\//i.test(lookup)) {
+        const nu = new URL(lookup)
+        lookup = nu.pathname
+      }
+    } catch (e) {}
+
+    // 3. そのURLでDBを検索（created_atが最古のものを1件）
+    const query = db.prepare('SELECT id FROM uploads WHERE url_path = ? ORDER BY datetime(created_at) ASC LIMIT 1')
+    const rows: any[] = query.all(lookup)
+
+    if (rows[0]) {
+      thumbnailId = rows[0].id
+    }
+  }
+
+  // If thumbnailId found, store it; otherwise use provided (string) cover_image or NULL.
+  return thumbnailId !== null ? thumbnailId : (cover_image || null)
 }
 
 export async function createUpload({ original_name, stored_name, url_path, mime_type, size_bytes }:{original_name:string,stored_name:string,url_path:string,mime_type:string,size_bytes:number}) {
