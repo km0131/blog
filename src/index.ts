@@ -5,8 +5,9 @@ import path from 'path'
 import fs from 'fs'
 import { renderPostsList } from './views/postsList'
 import { renderPostEditor } from './views/postEditor'
+import { renderNoticeEditor } from './views/noticeEditor'
 import { layout } from './views/layout'
-import { listPosts, getPost, createPost, createUpload, withDB } from './lib/db'
+import { listPosts, getPost, getNotice, upsertNotice, createPost, updatePost, createUpload, withDB } from './lib/db'
 
 const app = new Hono()
 
@@ -59,7 +60,8 @@ app.use('/', serveStatic({ root: './public' }))
 app.get('/', async (c) => {
   try {
     const posts = await listPosts()
-    return c.html(renderPostsList(posts))
+    const notice = await getNotice()
+    return c.html(renderPostsList(posts, notice))
   } catch (err) {
     return c.text('Failed to load posts: ' + String(err), 500)
   }
@@ -145,14 +147,35 @@ app.get('/uploads/*', async (c) => {
 app.get('/posts', async (c) => {
   try {
     const posts = await listPosts()
-    return c.html(renderPostsList(posts))
+    const notice = await getNotice()
+    return c.html(renderPostsList(posts, notice))
   } catch (err) {
     return c.text('Failed to load posts: ' + String(err), 500)
   }
 })
 
+app.get('/notice/edit', async (c) => {
+  try {
+    const notice = await getNotice()
+    return c.html(renderNoticeEditor(notice))
+  } catch (err) {
+    return c.text('Failed to load notice: ' + String(err), 500)
+  }
+})
+
 app.get('/posts/new', async (c) => {
   return c.html(renderPostEditor(null))
+})
+
+app.get('/posts/:id/edit', async (c) => {
+  const id = Number(c.req.param('id'))
+  try {
+    const post = await getPost(id)
+    if (!post) return c.text('Not found', 404)
+    return c.html(renderPostEditor(post))
+  } catch (err) {
+    return c.text('Failed to load post: ' + String(err), 500)
+  }
 })
 
 app.get('/posts/:id', async (c) => {
@@ -174,7 +197,10 @@ app.get('/posts/:id', async (c) => {
         <h1 class="text-3xl md:text-4xl font-bold leading-tight mb-6">${escapeHtml(post.title)}</h1>
         <div class="meta-info flex items-center justify-between gap-4 flex-wrap">
           <span>${metaDate || 'Created post'}</span>
-          <a href="/posts" class="btn-soft font-bold">一覧に戻る</a>
+          <div class="flex items-center gap-2">
+            <a href="/posts/${post.id}/edit" class="btn-soft font-bold">編集する</a>
+            <a href="/posts" class="btn-soft font-bold">一覧に戻る</a>
+          </div>
         </div>
         ${featuredImage ? `
           <img src="${escapeHtml(featuredImage)}" alt="${escapeHtml(post.title)}" class="post-image">
@@ -196,6 +222,7 @@ app.get('/posts/:id', async (c) => {
 app.post('/api/posts', async (c) => {
   try {
     const body = await c.req.json()
+    const id = Number(body.id || 0)
     const title = String(body.title || 'untitled')
     const md = String(body.body_markdown || '')
     const coverImageUrl = String(body.cover_image_url || '')
@@ -220,10 +247,27 @@ app.post('/api/posts', async (c) => {
       if (rows[0]) coverImageId = rows[0].id
     }
 
+    if (id > 0) {
+      const res = await updatePost(id, { title, body_markdown: md, cover_image: coverImageId })
+      return c.json({ ok: true, id, changes: res.changes })
+    }
+
     const res = await createPost({ title, body_markdown: md, cover_image: coverImageId })
     return c.json({ ok: true, id: res.lastInsertRowid })
   } catch (err) {
     return c.json({ ok: false, error: String(err) })
+  }
+})
+
+app.post('/api/notice', async (c) => {
+  try {
+    const body = await c.req.json()
+    const title = String(body.title || 'お知らせ')
+    const body_markdown = String(body.body_markdown || '')
+    const res = await upsertNotice({ title, body_markdown })
+    return c.json({ ok: true, id: res.id })
+  } catch (err) {
+    return c.json({ ok: false, error: String(err) }, 500)
   }
 })
 
