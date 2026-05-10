@@ -164,3 +164,13 @@ docker compose up -d
 ```
 docker compose down
 ```
+
+## 名前やIDを確認
+```
+docker ps -a
+```
+
+## 特定のコンテナだけを強制削除
+```
+docker rm -f <コンテナIDまたは名前>
+```
