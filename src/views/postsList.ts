@@ -43,7 +43,7 @@ export function renderPostsList(posts: any[], notice: any = null) {
   }).join('\n')
 
   const noticeHtml = notice ? `
-    <section class="paper-frame p-5 md:p-6 mb-10 border-l-4 border-orange-300">
+    <section class="paper-frame p-5 md:p-6 mb-0 border-l-4 border-orange-300">
       <div class="flex items-center justify-between gap-4 mb-3">
         <div>
           <p class="text-xs tracking-[0.2em] uppercase text-orange-500 font-bold">Notice</p>
@@ -56,7 +56,7 @@ export function renderPostsList(posts: any[], notice: any = null) {
       </div>
     </section>
   ` : `
-    <section class="paper-frame p-5 md:p-6 mb-10 border-l-4 border-orange-300">
+    <section class="paper-frame p-5 md:p-6 mb-0 border-l-4 border-orange-300">
       <div class="flex items-center justify-between gap-4">
         <div>
           <p class="text-xs tracking-[0.2em] uppercase text-orange-500 font-bold">Notice</p>
@@ -177,19 +177,20 @@ export function renderPostsList(posts: any[], notice: any = null) {
   </nav>
 
   <main class="max-w-4xl mx-auto px-6">
-        
+
+    <!-- お知らせ -->
+    ${noticeHtml ? `<div class="mt-5 mb-8">${noticeHtml}</div>` : ''}
     <!-- 投稿一覧のヘッダー -->
-    <div class="flex justify-between items-end mb-12 border-b border-orange-100 pb-6">
-      <div>
+    <div class="flex flex-col md:flex-row md:justify-between md:items-start gap-6 mb-12 border-b border-orange-100 pb-6">
+      <div class="flex-1">
+        <span class="text-2xl">🐾</span>
         <h2 class="section-title text-2xl font-bold">記事の一覧</h2>
         <p class="text-xs opacity-60">わんことの何気ない日常を綴っています</p>
       </div>
-      <a href="/posts/new" class="btn-soft font-bold">
+      <a href="/posts/new" class="btn-soft font-bold self-start md:mt-2">
         <span class="mr-1">＋</span> 新しく書く
       </a>
     </div>
-
-    ${noticeHtml}
 
     <!-- 投稿リスト (JavaScriptで生成される items 部分を想定) -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-10">
