@@ -5,8 +5,9 @@ import path from 'path'
 import fs from 'fs'
 import { renderPostsList } from './views/postsList'
 import { renderPostEditor } from './views/postEditor'
+import { renderNoticeEditor } from './views/noticeEditor'
 import { layout } from './views/layout'
-import { listPosts, getPost, createPost, updatePost, createUpload, withDB } from './lib/db'
+import { listPosts, getPost, getNotice, upsertNotice, createPost, updatePost, createUpload, withDB } from './lib/db'
 
 const app = new Hono()
 
@@ -59,7 +60,8 @@ app.use('/', serveStatic({ root: './public' }))
 app.get('/', async (c) => {
   try {
     const posts = await listPosts()
-    return c.html(renderPostsList(posts))
+    const notice = await getNotice()
+    return c.html(renderPostsList(posts, notice))
   } catch (err) {
     return c.text('Failed to load posts: ' + String(err), 500)
   }
@@ -145,9 +147,19 @@ app.get('/uploads/*', async (c) => {
 app.get('/posts', async (c) => {
   try {
     const posts = await listPosts()
-    return c.html(renderPostsList(posts))
+    const notice = await getNotice()
+    return c.html(renderPostsList(posts, notice))
   } catch (err) {
     return c.text('Failed to load posts: ' + String(err), 500)
+  }
+})
+
+app.get('/notice/edit', async (c) => {
+  try {
+    const notice = await getNotice()
+    return c.html(renderNoticeEditor(notice))
+  } catch (err) {
+    return c.text('Failed to load notice: ' + String(err), 500)
   }
 })
 
@@ -244,6 +256,18 @@ app.post('/api/posts', async (c) => {
     return c.json({ ok: true, id: res.lastInsertRowid })
   } catch (err) {
     return c.json({ ok: false, error: String(err) })
+  }
+})
+
+app.post('/api/notice', async (c) => {
+  try {
+    const body = await c.req.json()
+    const title = String(body.title || 'お知らせ')
+    const body_markdown = String(body.body_markdown || '')
+    const res = await upsertNotice({ title, body_markdown })
+    return c.json({ ok: true, id: res.id })
+  } catch (err) {
+    return c.json({ ok: false, error: String(err) }, 500)
   }
 })
 

@@ -1,6 +1,7 @@
 import { layout } from './layout'
+import { marked } from 'marked'
 
-export function renderPostsList(posts: any[]) {
+export function renderPostsList(posts: any[], notice: any = null) {
   function extractFirstImage(body: string) {
   if (!body) return ''
   const m = body.match(/!\[[^\]]*\]\(([^)]+)\)/)
@@ -40,6 +41,31 @@ export function renderPostsList(posts: any[]) {
         </div>
       </article>`
   }).join('\n')
+
+  const noticeHtml = notice ? `
+    <section class="paper-frame p-5 md:p-6 mb-10 border-l-4 border-orange-300">
+      <div class="flex items-center justify-between gap-4 mb-3">
+        <div>
+          <p class="text-xs tracking-[0.2em] uppercase text-orange-500 font-bold">Notice</p>
+          <h2 class="text-xl font-bold mt-1">${escapeHtml(notice.title || 'お知らせ')}</h2>
+        </div>
+        <a href="/notice/edit" class="btn-soft font-bold text-sm">お知らせを編集</a>
+      </div>
+      <div class="content-prose text-left">
+        ${marked.parse(String(notice.body_markdown || ''))}
+      </div>
+    </section>
+  ` : `
+    <section class="paper-frame p-5 md:p-6 mb-10 border-l-4 border-orange-300">
+      <div class="flex items-center justify-between gap-4">
+        <div>
+          <p class="text-xs tracking-[0.2em] uppercase text-orange-500 font-bold">Notice</p>
+          <h2 class="text-xl font-bold mt-1">お知らせはまだありません</h2>
+        </div>
+        <a href="/notice/edit" class="btn-soft font-bold text-sm">お知らせを作成</a>
+      </div>
+    </section>
+  `
 
   const html = `<!DOCTYPE html>
 <html lang="ja">
@@ -162,6 +188,8 @@ export function renderPostsList(posts: any[]) {
         <span class="mr-1">＋</span> 新しく書く
       </a>
     </div>
+
+    ${noticeHtml}
 
     <!-- 投稿リスト (JavaScriptで生成される items 部分を想定) -->
     <div class="grid grid-cols-1 md:grid-cols-2 gap-10">

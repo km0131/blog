@@ -42,6 +42,35 @@ export async function listPosts() {
   })
 }
 
+export async function getNotice() {
+  return withDB((db) => {
+    const rows = []
+    for (const r of db.query(`
+      SELECT id, title, body_markdown, updated_at
+      FROM notices
+      ORDER BY id ASC
+      LIMIT 1
+    `)) rows.push(r)
+    return rows.length ? rows[0] : null
+  })
+}
+
+export async function upsertNotice({ title, body_markdown }:{title:string, body_markdown:string}) {
+  return withDB((db) => {
+    const existing: any[] = []
+    for (const r of db.query('SELECT id FROM notices ORDER BY id ASC LIMIT 1')) existing.push(r)
+    if (existing[0]) {
+      const stmt = db.prepare('UPDATE notices SET title = ?, body_markdown = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
+      const res = stmt.run(title, body_markdown, existing[0].id)
+      return { id: existing[0].id, changes: res.changes }
+    }
+
+    const stmt = db.prepare('INSERT INTO notices (title, body_markdown, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)')
+    const res = stmt.run(title, body_markdown)
+    return { id: res.lastInsertRowid }
+  })
+}
+
 function stripMarkdown(text: string) {
   return String(text || '')
     .replace(/<img\b[^>]*>/gi, ' ')
