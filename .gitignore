@@ -4,8 +4,20 @@ dist
 .env
 bun.lockb
 
+
 public/uploads/*.png
 public/uploads/*.jpg
 public/uploads/*.jpeg
 public/uploads/*.gif
 public/uploads/*.webp
+SQL/*.sql
+.DS_Store
+.idea
+.vscode
+*.log
+*.bak
+*.tmp
+*.swp
+*.swo
+*.swn
+*.sln
