@@ -27,32 +27,33 @@ export async function listPosts() {
 }
 
 export async function getNotice() {
-  return withDB((db) => {
-    const rows = []
-    for (const r of db.query(`
-      SELECT id, title, body_markdown, updated_at
-      FROM notices
-      ORDER BY id ASC
-      LIMIT 1
-    `)) rows.push(r)
-    return rows.length ? rows[0] : null
-  })
+  const rows = await sql`
+    SELECT id, title, body_markdown, updated_at
+    FROM notices
+    ORDER BY id ASC
+    LIMIT 1
+  `
+  return rows.length ? rows[0] : null
 }
 
 export async function upsertNotice({ title, body_markdown }:{title:string, body_markdown:string}) {
-  return withDB((db) => {
-    const existing: any[] = []
-    for (const r of db.query('SELECT id FROM notices ORDER BY id ASC LIMIT 1')) existing.push(r)
-    if (existing[0]) {
-      const stmt = db.prepare('UPDATE notices SET title = ?, body_markdown = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-      const res = stmt.run(title, body_markdown, existing[0].id)
-      return { id: existing[0].id, changes: res.changes }
-    }
+  const existing = await sql`SELECT id FROM notices ORDER BY id ASC LIMIT 1`
+  if (existing[0]) {
+    const result = await sql`
+      UPDATE notices
+      SET title = ${title}, body_markdown = ${body_markdown}, updated_at = CURRENT_TIMESTAMP
+      WHERE id = ${existing[0].id}
+      RETURNING id
+    `
+    return { id: existing[0].id, changes: 1 }
+  }
 
-    const stmt = db.prepare('INSERT INTO notices (title, body_markdown, updated_at) VALUES (?, ?, CURRENT_TIMESTAMP)')
-    const res = stmt.run(title, body_markdown)
-    return { id: res.lastInsertRowid }
-  })
+  const res = await sql`
+    INSERT INTO notices (title, body_markdown, updated_at)
+    VALUES (${title}, ${body_markdown}, CURRENT_TIMESTAMP)
+    RETURNING id
+  `
+  return { id: res[0]?.id ?? null }
 }
 
 function stripMarkdown(text: string) {
@@ -126,24 +127,19 @@ export async function createPost({ title, body_markdown, cover_image = null, tag
     RETURNING id
   `
   return { lastInsertRowid: res?.id ?? null }
-  return withDB((db) => {
-    const coverValue = resolveCoverImageId(db, body_markdown, cover_image)
-    const stmt = db.prepare('INSERT INTO posts (title, body_markdown, cover_image, tags, updated_at) VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)')
-    const res = stmt.run(title, body_markdown, coverValue, tags)
-    return { lastInsertRowid: res.lastInsertRowid }
-  })
 }
 
 export async function updatePost(id: number, { title, body_markdown, cover_image = null, tags = null }:{title:string,body_markdown:string,cover_image?:number|string|null,tags?:string|null}) {
-  return withDB((db) => {
-    const coverValue = resolveCoverImageId(db, body_markdown, cover_image)
-    const stmt = db.prepare('UPDATE posts SET title = ?, body_markdown = ?, cover_image = ?, tags = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ?')
-    const res = stmt.run(title, body_markdown, coverValue, tags, id)
-    return { changes: res.changes }
-  })
+  const coverValue = await resolveCoverImageId(body_markdown, cover_image)
+  const result = await sql`
+    UPDATE posts
+    SET title = ${title}, body_markdown = ${body_markdown}, cover_image = ${coverValue}, tags = ${tags}, updated_at = CURRENT_TIMESTAMP
+    WHERE id = ${id}
+  `
+  return { changes: result.count }
 }
 
-function resolveCoverImageId(db: any, body_markdown: string, cover_image: number|string|null) {
+async function resolveCoverImageId(body_markdown: string, cover_image: number|string|null) {
   // If caller provided a numeric cover_image id, prefer it and skip URL lookup.
   if (typeof cover_image === 'number') {
     return cover_image
@@ -171,8 +167,12 @@ function resolveCoverImageId(db: any, body_markdown: string, cover_image: number
     } catch (e) {}
 
     // 3. そのURLでDBを検索（created_atが最古のものを1件）
-    const query = db.prepare('SELECT id FROM uploads WHERE url_path = ? ORDER BY datetime(created_at) ASC LIMIT 1')
-    const rows: any[] = query.all(lookup)
+    const rows = await sql`
+      SELECT id FROM uploads
+      WHERE url_path = ${lookup}
+      ORDER BY created_at ASC
+      LIMIT 1
+    `
 
     if (rows[0]) {
       thumbnailId = rows[0].id
