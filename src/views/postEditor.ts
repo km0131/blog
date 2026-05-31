@@ -2,18 +2,22 @@ import { layout } from './layout';
 import { marked } from 'marked';
 
 export function renderPostEditor(post: any = null) {
+  const isEdit = Boolean(post && post.id)
   // 1. サーバー側で必要な変数の準備
   const title = post ? escapeHtml(post.title) : '';
-  const idInput = (post && post.id) ? `<input type="hidden" name="id" value="${post.id}" />` : '';
+  const idInput = isEdit ? `<input type="hidden" name="id" value="${post.id}" />` : '';
   
   // サーバー側で初期プレビューHTMLを生成（初回表示用）
   const initialPreviewHtml = post ? marked(post.body_markdown) : '';
+  const heading = isEdit ? '投稿編集' : '投稿作成'
+  const saveLabel = isEdit ? '更新して保存' : '保存'
+  const pageTitle = isEdit ? '投稿編集 - ワンちゃんブログ' : '投稿作成 - ワンちゃんブログ'
 
   // 2. HTMLコンテンツの組み立て
   const content = `
     <div class="flex justify-between items-end mb-8 border-b border-orange-100 pb-5">
       <div>
-        <h2 class="text-2xl font-bold">投稿作成</h2>
+        <h2 class="text-2xl font-bold">${heading}</h2>
         <p class="text-xs opacity-60">わんことの日常をやわらかく残す</p>
       </div>
       <a href="/posts" class="btn-soft font-bold">一覧に戻る</a>
@@ -36,7 +40,7 @@ export function renderPostEditor(post: any = null) {
             <textarea name="body_markdown" class="hidden"></textarea>
           </div>
           <div class="flex items-center space-x-2">
-            <button type="button" id="saveBtn" class="btn-soft px-4 py-2">保存</button>
+            <button type="button" id="saveBtn" class="btn-soft px-4 py-2">${saveLabel}</button>
           </div>
         </form>
       </div>
@@ -195,7 +199,7 @@ export function renderPostEditor(post: any = null) {
     </script>
   `;
 
-  return layout('投稿作成 - ワンちゃんブログ', content);
+  return layout(pageTitle, content);
 }
 
 function escapeHtml(s: any) {

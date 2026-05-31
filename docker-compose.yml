@@ -8,6 +8,8 @@ services:
     volumes:
       - ./:/app:z
       - ./data:/app/data:z 
+      - /app/node_modules
+      - ./data:/app/data:z
     environment:
       - NODE_ENV=development
       # 💡 Bunのプログラムから一発でPostgresに繋げられるように環境変数を追加
