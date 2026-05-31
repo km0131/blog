@@ -4,14 +4,14 @@
 家族が気軽に写真や日記を投稿できる、写真中心のシンプルなブログを開発します。
 編集は TipTap によるリッチ体験と Markdown の併用を想定しています。
 
-主な技術スタック: Bun / Hono / SQLite / TipTap / marked / Tailwind CSS
+主な技術スタック: Bun / Hono / PostgreSQL + pgvector / TipTap / marked / Tailwind CSS
 
 ---
 
 ## 1. システム構成（概要）
 - 実行環境: Bun
 - Web フレームワーク: Hono（API とサーバーサイドレンダリング）
-- データベース: SQLite（初期）
+- データベース: PostgreSQL + pgvector
 - エディタ: TipTap（ProseMirror ベース、Markdown 拡張あり）
 - Markdown→HTML: marked
 - スタイリング: Tailwind CSS（想定）
@@ -22,7 +22,7 @@
 
 フェーズ1 — 土台作り
 - Bun + Hono のプロジェクト初期化
-- SQLite に `posts` テーブルを作成（マイグレーションスクリプト）
+- PostgreSQL に `posts` テーブルを作成（マイグレーションスクリプト）
 - Hono に一覧画面・投稿画面の骨組み（JSX）を作成
 
 フェーズ2 — ハイブリッド・エディタ実装
@@ -33,14 +33,14 @@
 
 フェーズ3 — 検索・AI（将来的）
 - 画像アップロード時の自動タグ付け（AI）
-- SQLite FTS5 による全文検索実装
-- 将来的なベクトル検索への拡張準備
+- PostgreSQL/pgvector によるベクトル検索対応を想定
+- 将来的な検索強化への拡張準備
 
 ---
 
 ## 3. データの流れ（簡易ワークフロー）
 入力: 家族はGUI操作、開発者はMarkdownで入力 → TipTap が解釈・表示
-保存: TipTap を Markdown に変換 → Hono API 経由で保存 → SQLite に格納
+保存: TipTap を Markdown に変換 → Hono API 経由で保存 → PostgreSQL に格納
 表示: DB から Markdown を取得 → `marked` で HTML に変換 → CSS で整形
 
 ---
@@ -118,7 +118,7 @@ cd my-dog-blog
 bun init
 
 # 依存インストール（例）
-bun add hono marked sqlite3 @tiptap/core @tiptap/starter-kit @tiptap/extension-markdown tailwindcss
+bun add hono marked postgres @tiptap/core @tiptap/starter-kit @tiptap/extension-markdown tailwindcss
 
 # 開発サーバ（package.json に dev スクリプトを設定）
 bun run dev

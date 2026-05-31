@@ -1,29 +1,30 @@
-import fs from 'fs'
-import path from 'path'
-
-const dataDir = path.resolve(process.cwd(), 'data')
-if (!fs.existsSync(dataDir)) fs.mkdirSync(dataDir)
-
-const dbPath = path.join(dataDir, 'db.sqlite')
+import { sql } from '../lib/db'
 
 async function main() {
   try {
-    const mod = await import('bun:sqlite')
-    const DB = mod.DB ?? mod.default ?? mod.Sqlite ?? mod.Database
-    if (!DB) throw new Error('bun:sqlite export not found')
-    const db = new DB(dbPath)
-    db.run(`
-CREATE TABLE IF NOT EXISTS posts (
-  id INTEGER PRIMARY KEY AUTOINCREMENT,
-  title TEXT NOT NULL,
-  body_markdown TEXT NOT NULL,
-  cover_image TEXT,
-  upload_id INTEGER,
-  tags TEXT,
-  created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-  updated_at DATETIME
-);
+    await sql`
+      CREATE TABLE IF NOT EXISTS posts (
+        id SERIAL PRIMARY KEY,
+        title TEXT NOT NULL,
+        body_markdown TEXT NOT NULL,
+        cover_image TEXT,
+        upload_id INTEGER,
+        tags TEXT,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMPTZ
+      );
 
+      CREATE TABLE IF NOT EXISTS uploads (
+        id SERIAL PRIMARY KEY,
+        original_name TEXT NOT NULL,
+        stored_name TEXT NOT NULL,
+        url_path TEXT NOT NULL,
+        mime_type TEXT NOT NULL,
+        size_bytes INTEGER NOT NULL,
+        created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP
+      );
+    `
+    console.log('Initialized PostgreSQL schema')
 CREATE TABLE IF NOT EXISTS uploads (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   original_name TEXT NOT NULL,
@@ -86,10 +87,8 @@ CREATE TABLE IF NOT EXISTS notices (
     console.log('Initialized SQLite at', dbPath)
     db.close()
   } catch (err) {
-    console.warn('bun:sqlite is not available in this environment:', String(err))
-    // fallback: ensure file exists
-    if (!fs.existsSync(dbPath)) fs.writeFileSync(dbPath, '')
-    console.log('Created empty DB file at', dbPath)
+    console.error('Failed to initialize database schema:', String(err))
+    process.exit(1)
   }
 }
 

@@ -237,12 +237,14 @@ app.post('/api/posts', async (c) => {
         }
       } catch (e) {}
 
-      const rows: any[] = await withDB((db: any) => {
-        const result: any[] = []
-        for (const r of db.prepare('SELECT id FROM uploads WHERE url_path = ? ORDER BY datetime(created_at) ASC LIMIT 1').all(lookup)) {
-          result.push(r)
-        }
-        return result
+      const rows: any[] = await withDB(async (db: any) => {
+        return await db`
+          SELECT id
+          FROM uploads
+          WHERE url_path = ${lookup}
+          ORDER BY created_at ASC
+          LIMIT 1
+        `
       })
       if (rows[0]) coverImageId = rows[0].id
     }
