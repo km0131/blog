@@ -7,7 +7,7 @@ import { renderPostsList } from './views/postsList'
 import { renderPostEditor } from './views/postEditor'
 import { renderNoticeEditor } from './views/noticeEditor'
 import { layout } from './views/layout'
-import { listPosts, getPost, getNotice, upsertNotice, createPost, updatePost, createUpload, withDB } from './lib/db'
+import { listPosts, getPost, getNotice, upsertNotice, createPost, updatePost, createUpload, sql } from './lib/db'
 
 const app = new Hono()
 
@@ -237,15 +237,13 @@ app.post('/api/posts', async (c) => {
         }
       } catch (e) {}
 
-      const rows: any[] = await withDB(async (db: any) => {
-        return await db`
-          SELECT id
-          FROM uploads
-          WHERE url_path = ${lookup}
-          ORDER BY created_at ASC
-          LIMIT 1
-        `
-      })
+      const rows = await sql`
+        SELECT id
+        FROM uploads
+        WHERE url_path = ${lookup}
+        ORDER BY created_at ASC
+        LIMIT 1
+      `
       if (rows[0]) coverImageId = rows[0].id
     }
 
