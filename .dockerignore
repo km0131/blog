@@ -3,4 +3,3 @@ dist
 .venv
 .env
 bun.lockb
-data/*.sqlite

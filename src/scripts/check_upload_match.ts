@@ -1,6 +1,5 @@
-import path from 'path'
+import { sql } from '../lib/db'
 
-const dbPath = path.join(process.cwd(), 'data', 'db.sqlite')
 const postId = Number(process.argv[2] || 0)
 
 async function main() {
@@ -9,18 +8,16 @@ async function main() {
     process.exit(1)
   }
   try {
-    const mod = await import('bun:sqlite')
-    const DB = mod.DB ?? mod.default ?? mod.Sqlite ?? mod.Database
-    if (!DB) throw new Error('bun:sqlite export not found')
-    const db = new DB(dbPath)
-
-    const rows = []
-    for (const r of db.query('SELECT id, body_markdown FROM posts WHERE id = ?', postId)) rows.push(r)
+    const rows = await sql`
+      SELECT id, body_markdown
+      FROM posts
+      WHERE id = ${postId}
+    `
     if (!rows.length) {
       console.error('post not found')
       process.exit(1)
     }
-    const body = rows[0][1] || ''
+    const body = rows[0].body_markdown || ''
     console.log('post body:', body)
     const urls: string[] = []
     const re = /!\[[^\]]*\]\(([^)]+)\)/g
@@ -38,13 +35,13 @@ async function main() {
     console.log('extracted urls:', urls)
     if (!urls.length) process.exit(0)
     const uniq = Array.from(new Set(urls))
-    const placeholders = uniq.map(() => '?').join(',')
-    const q = `SELECT id, url_path, created_at FROM uploads WHERE url_path IN (${placeholders}) ORDER BY datetime(created_at) ASC`
-    console.log('Query:', q, 'Params:', uniq)
-    const found: any[] = []
-    for (const r of db.query(q, ...uniq)) found.push(r)
+    const found = await sql`
+      SELECT id, url_path, created_at
+      FROM uploads
+      WHERE url_path = ANY(${uniq})
+      ORDER BY created_at ASC
+    `
     console.log('found uploads:', found)
-    db.close()
   } catch (err) {
     console.error('Error:', String(err))
     process.exit(1)
